@@ -1,428 +1,1027 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="color-scheme" content="dark" />
-<title>Series Forecast — Team Elo & Match Odds</title>
-<meta name="description" content="Match-rating scenario workbench for esports teams with Elo-driven win probability sims, head-to-head matrices, and roster sentiment." />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=4" />
-<link rel="stylesheet" href="identity.css?v=4" />
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Series Forecast — Team Elo & Match Odds</title>
+    <meta
+      name="description"
+      content="Match-rating scenario workbench for esports teams with Elo-driven win probability sims, head-to-head matrices, and roster sentiment."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="identity.css?v=5" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to main content</a>
 
-<a href="#main" class="skip-link">Skip to main content</a>
+    <div class="app">
+      <!-- ===== Synthetic scenario tape ===== -->
+      <div
+        class="ticker-tape-wrap"
+        role="region"
+        aria-label="Synthetic team scenario tape"
+      >
+        <button
+          type="button"
+          id="tape-toggle"
+          class="tape-toggle"
+          aria-pressed="false"
+          aria-label="Pause scenario tape"
+        >
+          <span aria-hidden="true" class="tape-icon">❚❚</span
+          ><span class="tape-toggle-lbl">Pause</span>
+        </button>
+        <div class="ticker-tape-viewport">
+          <div class="ticker-tape" id="ticker-tape" aria-hidden="true"></div>
+        </div>
+        <div id="ticker-tape-sr" class="sr-only" aria-live="off"></div>
+      </div>
 
-<div class="app">
+      <!-- ===== Compact status strip ===== -->
+      <div class="term-strip" role="status" aria-label="Session status">
+        <span class="kv"
+          ><span class="brand-dot" aria-hidden="true"></span
+          ><span>EAT</span></span
+        >
+        <span class="kv"
+          ><span>WATCH</span> <span class="v" id="term-watch">10</span></span
+        >
+        <span
+          class="kv term-conn initializing"
+          id="term-conn"
+          aria-label="Scenario data status"
+        >
+          <span class="conn-shape" aria-hidden="true"></span>
+          <span id="term-conn-label">INIT</span>
+          <span class="v" id="term-conn-src">—</span>
+        </span>
+        <span class="kv" id="term-mkt-wrap"
+          ><span>MODE</span>
+          <span
+            class="v"
+            id="term-market"
+            title="Deterministic scenario engine status"
+            >—</span
+          ></span
+        >
+        <span class="kv"
+          ><span>HORIZON</span>
+          <span class="v" id="term-horizon">30D</span></span
+        >
+        <span class="kv"
+          ><span>PATHS</span> <span class="v" id="term-paths">1K</span></span
+        >
+        <span class="kv"
+          ><span>SEED</span> <span class="v" id="term-seed">42</span></span
+        >
+        <span class="kv"
+          ><span>LATENCY</span> <span class="v" id="term-latency">—</span></span
+        >
+        <span class="kv ok"
+          ><span>UPTIME</span>
+          <span class="v" id="term-uptime">00:00:00</span></span
+        >
+      </div>
 
-  <!-- ===== Synthetic scenario tape ===== -->
-  <div class="ticker-tape-wrap" role="region" aria-label="Synthetic team scenario tape">
-    <button type="button" id="tape-toggle" class="tape-toggle" aria-pressed="false" aria-label="Pause scenario tape"><span aria-hidden="true" class="tape-icon">❚❚</span><span class="tape-toggle-lbl">Pause</span></button>
-    <div class="ticker-tape-viewport">
-      <div class="ticker-tape" id="ticker-tape" aria-hidden="true"></div>
-    </div>
-    <div id="ticker-tape-sr" class="sr-only" aria-live="off"></div>
-  </div>
+      <!-- ===== Snapshot fallback notice ===== -->
+      <div id="feed-banner" class="feed-banner" role="status" hidden>
+        <span class="feed-banner-icon" aria-hidden="true">!</span>
+        <span class="feed-banner-text" id="feed-banner-text"
+          >Scenario snapshot unavailable — using embedded seed data.</span
+        >
+        <button type="button" id="feed-retry" class="feed-btn">Retry</button>
+        <button
+          type="button"
+          id="feed-dismiss"
+          class="feed-btn feed-btn-icon"
+          aria-label="Dismiss feed notice"
+        >
+          ×
+        </button>
+      </div>
 
-  <!-- ===== Compact status strip ===== -->
-  <div class="term-strip" role="status" aria-label="Session status">
-    <span class="kv"><span class="brand-dot" aria-hidden="true"></span><span>EAT</span></span>
-    <span class="kv"><span>WATCH</span> <span class="v" id="term-watch">10</span></span>
-    <span class="kv term-conn initializing" id="term-conn" aria-label="Scenario data status">
-      <span class="conn-shape" aria-hidden="true"></span>
-      <span id="term-conn-label">INIT</span>
-      <span class="v" id="term-conn-src">—</span>
-    </span>
-    <span class="kv" id="term-mkt-wrap"><span>MODE</span> <span class="v" id="term-market" title="Deterministic scenario engine status">—</span></span>
-    <span class="kv"><span>HORIZON</span> <span class="v" id="term-horizon">30D</span></span>
-    <span class="kv"><span>PATHS</span> <span class="v" id="term-paths">1K</span></span>
-    <span class="kv"><span>SEED</span> <span class="v" id="term-seed">42</span></span>
-    <span class="kv"><span>LATENCY</span> <span class="v" id="term-latency">—</span></span>
-    <span class="kv ok"><span>UPTIME</span> <span class="v" id="term-uptime">00:00:00</span></span>
-  </div>
+      <!-- Accessible snapshot-status region -->
+      <span
+        id="session-status"
+        class="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      ></span>
 
-  <!-- ===== Snapshot fallback notice ===== -->
-  <div id="feed-banner" class="feed-banner" role="status" hidden>
-    <span class="feed-banner-icon" aria-hidden="true">!</span>
-    <span class="feed-banner-text" id="feed-banner-text">Scenario snapshot unavailable — using embedded seed data.</span>
-    <button type="button" id="feed-retry" class="feed-btn">Retry</button>
-    <button type="button" id="feed-dismiss" class="feed-btn feed-btn-icon" aria-label="Dismiss feed notice">×</button>
-  </div>
-
-  <!-- Accessible snapshot-status region -->
-  <span id="session-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span>
-
-  <!-- ===== Header ===== -->
-  <header class="app-header" role="banner">
-    <div>
-      <h1>Series Forecast </h1>
-      <p class="subtitle">Ratings, form, and bracket uncertainty for a fixed match slate.</p>
-    </div>
-    <div class="header-meta" aria-label="Data status">
-      <span><span class="live-dot" aria-hidden="true"></span>Scenario replay</span>
-      <span>Snapshot checked: <time id="last-update" datetime="">—</time></span>
-    </div>
-  </header>
-
-  <main id="main" role="main" aria-labelledby="dashboard-title" tabindex="-1">
-
-    <section class="hero" aria-labelledby="hero-heading">
-      <div class="hero-grid">
-        <div class="hero-text">
-          <p class="hero-eyebrow"><span class="hero-dot" aria-hidden="true"></span> Match slate · 10 teams · Modelled ratings</p>
-          <h2 id="hero-heading" class="hero-h">Series Forecast</h2>
-          <p class="hero-sub">Compare team ratings, recent form, and bracket uncertainty across a seeded match slate.</p>
-          <p class="hero-abstract">Every fixture can be replayed from the visible seed. The ratings are synthetic and the output is neither a live feed nor betting advice.</p>
-          <p class="hero-actions">
-            <a class="hero-link" href="#dashboard-title" id="hero-skip">Go to scenario controls ↓</a>
-            <a class="hero-link" href="#methodology-section">Read methodology</a>
+      <!-- ===== Header ===== -->
+      <header class="app-header" role="banner">
+        <div>
+          <h1>Series Forecast</h1>
+          <p class="subtitle">
+            Ratings, form, and bracket uncertainty for a fixed match slate.
           </p>
         </div>
-        <div class="hero-art" role="presentation" aria-hidden="true"><svg viewBox="0 0 320 240">
-        
-          <rect x="20" y="32" width="48" height="16" fill="#1a2029" stroke="#ff2bd6" stroke-opacity="0.55"/>
-          <line x1="68" x2="100" y1="40" y2="40" stroke="#ff2bd6" stroke-opacity="0.5"/>
-          <rect x="20" y="72" width="48" height="16" fill="#1a2029" stroke="#ff2bd6" stroke-opacity="0.55"/>
-          <line x1="68" x2="100" y1="80" y2="80" stroke="#ff2bd6" stroke-opacity="0.5"/>
-          <rect x="20" y="112" width="48" height="16" fill="#1a2029" stroke="#ff2bd6" stroke-opacity="0.55"/>
-          <line x1="68" x2="100" y1="120" y2="120" stroke="#ff2bd6" stroke-opacity="0.5"/>
-          <rect x="20" y="152" width="48" height="16" fill="#1a2029" stroke="#ff2bd6" stroke-opacity="0.55"/>
-          <line x1="68" x2="100" y1="160" y2="160" stroke="#ff2bd6" stroke-opacity="0.5"/>
-          <rect x="20" y="192" width="48" height="16" fill="#1a2029" stroke="#ff2bd6" stroke-opacity="0.55"/>
-          <line x1="68" x2="100" y1="200" y2="200" stroke="#ff2bd6" stroke-opacity="0.5"/>
-        
-          <rect x="100" y="52" width="56" height="16" fill="#1a2029" stroke="#ff2bd6"/>
-          <line x1="156" x2="200" y1="60" y2="60" stroke="#ff2bd6" stroke-opacity="0.7"/>
-          <rect x="100" y="132" width="56" height="16" fill="#1a2029" stroke="#ff2bd6"/>
-          <line x1="156" x2="200" y1="140" y2="140" stroke="#ff2bd6" stroke-opacity="0.7"/>
-          <rect x="100" y="172" width="56" height="16" fill="#1a2029" stroke="#ff2bd6"/>
-          <line x1="156" x2="200" y1="180" y2="180" stroke="#ff2bd6" stroke-opacity="0.7"/>
-        <rect x="200" y="92" width="64" height="16" fill="#ff2bd6" fill-opacity="0.55" stroke="#ff7be5"/>
-        <line x1="264" x2="290" y1="100" y2="100" stroke="#ff7be5"/>
-        <text x="280" y="92" fill="#ff7be5" font-size="9" font-family="JetBrains Mono, monospace" text-anchor="end" opacity="0.8">CHAMPION</text>
-      </svg></div>
-      </div>
-    </section>
-    <h2 id="dashboard-title" class="sr-only" tabindex="-1">Team dashboard</h2>
-
-    <!-- ===== Scenario controls ===== -->
-    <section class="controls-block" aria-labelledby="controls-heading">
-      <h2 id="controls-heading" class="sr-only">Strategy and simulation controls</h2>
-
-      <div class="strategy-bar">
-        <fieldset class="strategy-fieldset">
-          <legend>Rating inputs <span class="legend-hint">pick one or more — indicators combine</span></legend>
-          <div class="strategy-options" id="strategy-options"></div>
-        </fieldset>
-      </div>
-
-      <div class="controls-row">
-        <div class="field">
-          <label for="ticker-select">Focus team</label>
-          <select id="ticker-select" aria-describedby="ticker-help"></select>
-          <span id="ticker-help" class="sr-only">Select a team to drill into.</span>
+        <div class="header-meta" aria-label="Data status">
+          <span
+            ><span class="live-dot" aria-hidden="true"></span>Scenario
+            replay</span
+          >
+          <span
+            >Snapshot checked: <time id="last-update" datetime="">—</time></span
+          >
         </div>
-        <div class="field">
-          <label for="sims-range">Simulations <span id="sims-value" class="range-value" aria-hidden="true">1000</span></label>
-          <div class="range-row">
-            <input type="range" id="sims-range" min="100" max="10000" step="100" value="1000" aria-valuetext="1000 simulation paths" />
-          </div>
-        </div>
-        <div class="field">
-          <label for="horizon-select">Horizon</label>
-          <select id="horizon-select">
-            <option value="5">5 match steps</option>
-            <option value="30" selected>30 match steps</option>
-            <option value="90">90 match steps</option>
-            <option value="252">252 match steps</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="seed-input">Random seed</label>
-          <select id="seed-input">
-            <option value="42" selected>42 (deterministic)</option>
-            <option value="1337">1337</option>
-            <option value="2025">2025</option>
-            <option value="random">random</option>
-          </select>
-        </div>
-        <button type="button" id="run-btn" class="btn">Run Sim</button>
-      </div>
+      </header>
 
-      <span id="live-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span>
-      <p id="status-line" class="status-line" aria-hidden="true">Ready. Choose rating inputs, then run the scenario.</p>
-    </section>
-
-    <!-- ===== Main grid: content + right rail ===== -->
-    <div class="main-grid">
-
-      <div class="main-col">
-
-        <!-- ===== Summary metrics ===== -->
-        <section aria-labelledby="perf-heading">
-          <div class="section-header tight">
-            <h2 id="perf-heading">Field overview</h2>
-            <span class="subtext">All tracked teams</span>
-          </div>
-          <div class="kpi-strip" id="kpi-strip"></div>
-        </section>
-
-        <!-- ===== Sector heatmap ===== -->
-        <section aria-labelledby="heatmap-heading" class="heatmap-section">
-          <div class="section-header tight">
-            <h2 id="heatmap-heading">Watchlist heatmap</h2>
-            <span class="subtext">Colour = latest form change · size = relative team rating</span>
-          </div>
-          <div class="heatmap" id="heatmap" role="list" aria-label="Scenario comparison by latest synthetic change"></div>
-        </section>
-
-        <!-- ===== Team field ===== -->
-        <section class="section" aria-labelledby="stocks-heading">
-          <div class="section-header">
-            <div>
-              <h2 id="stocks-heading">Team field</h2>
-              <p class="subtext">The synthetic ratings used for this match slate. Form status combines the selected inputs; choose a row for detail.</p>
+      <main
+        id="main"
+        role="main"
+        aria-labelledby="dashboard-title"
+        tabindex="-1"
+      >
+        <section class="hero" aria-labelledby="hero-heading">
+          <div class="hero-grid">
+            <div class="hero-text">
+              <p class="hero-eyebrow">
+                <span class="hero-dot" aria-hidden="true"></span> Match slate ·
+                10 teams · Modelled ratings
+              </p>
+              <h2 id="hero-heading" class="hero-h">Series Forecast</h2>
+              <p class="hero-sub">
+                Compare team ratings, recent form, and bracket uncertainty
+                across a seeded match slate.
+              </p>
+              <p class="hero-abstract">
+                Every fixture can be replayed from the visible seed. The ratings
+                are synthetic and the output is neither a live feed nor betting
+                advice.
+              </p>
+              <p class="hero-actions">
+                <a class="hero-link" href="#dashboard-title" id="hero-skip"
+                  >Go to scenario controls ↓</a
+                >
+                <a class="hero-link" href="#methodology-section"
+                  >Read methodology</a
+                >
+              </p>
             </div>
-            <span id="aggregate-signal" aria-live="polite"></span>
+            <div class="hero-art" role="presentation" aria-hidden="true">
+              <svg viewBox="0 0 320 240">
+                <rect
+                  x="20"
+                  y="32"
+                  width="48"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.55"
+                />
+                <line
+                  x1="68"
+                  x2="100"
+                  y1="40"
+                  y2="40"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.5"
+                />
+                <rect
+                  x="20"
+                  y="72"
+                  width="48"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.55"
+                />
+                <line
+                  x1="68"
+                  x2="100"
+                  y1="80"
+                  y2="80"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.5"
+                />
+                <rect
+                  x="20"
+                  y="112"
+                  width="48"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.55"
+                />
+                <line
+                  x1="68"
+                  x2="100"
+                  y1="120"
+                  y2="120"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.5"
+                />
+                <rect
+                  x="20"
+                  y="152"
+                  width="48"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.55"
+                />
+                <line
+                  x1="68"
+                  x2="100"
+                  y1="160"
+                  y2="160"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.5"
+                />
+                <rect
+                  x="20"
+                  y="192"
+                  width="48"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.55"
+                />
+                <line
+                  x1="68"
+                  x2="100"
+                  y1="200"
+                  y2="200"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.5"
+                />
+
+                <rect
+                  x="100"
+                  y="52"
+                  width="56"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                />
+                <line
+                  x1="156"
+                  x2="200"
+                  y1="60"
+                  y2="60"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.7"
+                />
+                <rect
+                  x="100"
+                  y="132"
+                  width="56"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                />
+                <line
+                  x1="156"
+                  x2="200"
+                  y1="140"
+                  y2="140"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.7"
+                />
+                <rect
+                  x="100"
+                  y="172"
+                  width="56"
+                  height="16"
+                  fill="#1a2029"
+                  stroke="#ff2bd6"
+                />
+                <line
+                  x1="156"
+                  x2="200"
+                  y1="180"
+                  y2="180"
+                  stroke="#ff2bd6"
+                  stroke-opacity="0.7"
+                />
+                <rect
+                  x="200"
+                  y="92"
+                  width="64"
+                  height="16"
+                  fill="#ff2bd6"
+                  fill-opacity="0.55"
+                  stroke="#ff7be5"
+                />
+                <line x1="264" x2="290" y1="100" y2="100" stroke="#ff7be5" />
+                <text
+                  x="280"
+                  y="92"
+                  fill="#ff7be5"
+                  font-size="9"
+                  font-family="JetBrains Mono, monospace"
+                  text-anchor="end"
+                  opacity="0.8"
+                >
+                  CHAMPION
+                </text>
+              </svg>
+            </div>
           </div>
-          <div class="table-wrap">
-            <table class="stocks" id="stocks-table">
-              <caption class="sr-only">Synthetic team ratings with latest form changes, scenario summaries, note balance, and form status.</caption>
-              <thead>
-                <tr>
-                  <th scope="col" aria-sort="none"><button type="button" data-sort="ticker">Team <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
-                  <th scope="col">Org · Game</th>
-                  <th scope="col" class="spark-col">60D</th>
-                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="price">Elo <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
-                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="change">Δ Rating <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
-                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="expRet">Scenario mean <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
-                  <th scope="col" class="num">95% CI</th>
-                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="sentiment">Notes</button></th>
-                  <th scope="col">Form balance</th>
-                  <th scope="col">Agreement</th>
-                  <th scope="col">Form status</th>
-                </tr>
-              </thead>
-              <tbody id="stocks-body"></tbody>
-            </table>
+        </section>
+        <h2 id="dashboard-title" class="sr-only" tabindex="-1">
+          Team dashboard
+        </h2>
+
+        <!-- ===== Scenario controls ===== -->
+        <section class="controls-block" aria-labelledby="controls-heading">
+          <h2 id="controls-heading" class="sr-only">
+            Strategy and simulation controls
+          </h2>
+
+          <div class="strategy-bar">
+            <fieldset class="strategy-fieldset">
+              <legend>
+                Rating inputs
+                <span class="legend-hint"
+                  >pick one or more — indicators combine</span
+                >
+              </legend>
+              <div class="strategy-options" id="strategy-options"></div>
+            </fieldset>
           </div>
-          <p class="table-help subtext" id="table-help">Choose a row, or press Enter from the keyboard, to inspect a team.</p>
+
+          <div class="controls-row">
+            <div class="field">
+              <label for="ticker-select">Focus team</label>
+              <select
+                id="ticker-select"
+                aria-describedby="ticker-help"
+              ></select>
+              <span id="ticker-help" class="sr-only"
+                >Select a team to drill into.</span
+              >
+            </div>
+            <div class="field">
+              <label for="sims-range"
+                >Simulations
+                <span id="sims-value" class="range-value" aria-hidden="true"
+                  >1000</span
+                ></label
+              >
+              <div class="range-row">
+                <input
+                  type="range"
+                  id="sims-range"
+                  min="100"
+                  max="10000"
+                  step="100"
+                  value="1000"
+                  aria-valuetext="1000 simulation paths"
+                />
+              </div>
+            </div>
+            <div class="field">
+              <label for="horizon-select">Horizon</label>
+              <select id="horizon-select">
+                <option value="5">5 match steps</option>
+                <option value="30" selected>30 match steps</option>
+                <option value="90">90 match steps</option>
+                <option value="252">252 match steps</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="seed-input">Random seed</label>
+              <select id="seed-input">
+                <option value="42" selected>42 (deterministic)</option>
+                <option value="1337">1337</option>
+                <option value="2025">2025</option>
+                <option value="random">random</option>
+              </select>
+            </div>
+            <button type="button" id="run-btn" class="btn">Run Sim</button>
+          </div>
+
+          <span
+            id="live-status"
+            class="sr-only"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></span>
+          <p id="status-line" class="status-line" aria-hidden="true">
+            Ready. Choose rating inputs, then run the scenario.
+          </p>
         </section>
 
-        <!-- ===== Detail for selected item ===== -->
-        <section class="section" aria-labelledby="detail-heading" id="detail-section">
-          <div class="section-header">
-            <div>
-              <h2 id="detail-heading">Team detail · <span id="detail-ticker">—</span> <span id="detail-name" class="subtext"></span></h2>
-              <p class="subtext" id="detail-subtitle">Click a row in the table above to drill into a specific team.</p>
-            </div>
-            <span id="detail-signal" aria-live="polite"></span>
-          </div>
+        <!-- ===== Main grid: content + right rail ===== -->
+        <div class="main-grid">
+          <div class="main-col">
+            <!-- ===== Summary metrics ===== -->
+            <section aria-labelledby="perf-heading">
+              <div class="section-header tight">
+                <h2 id="perf-heading">Field overview</h2>
+                <span class="subtext">All tracked teams</span>
+              </div>
+              <div class="kpi-strip" id="kpi-strip"></div>
+            </section>
 
-          <div class="grid-2">
-            <figure class="chart-wrap" aria-labelledby="mc-heading">
-              <span class="chart-crt-layer" aria-hidden="true"></span>
-              <h3 id="mc-heading">Seeded scenario paths</h3>
-              <div id="mc-chart" role="img" aria-label="Loading chart" tabindex="0" aria-describedby="mc-crosshair-help"></div>
-              <p id="mc-crosshair-help" class="sr-only">Use left and right arrow keys to move the crosshair across match steps; press Home or End to jump to first or last day.</p>
-              <div id="mc-crosshair-sr" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-              <figcaption id="mc-caption">Run the model to see reproducible scenario paths.</figcaption>
-              <table class="sr-only" id="mc-data-table" aria-label="Seeded scenario summary statistics">
-                <caption>Simulation summary</caption>
-                <thead><tr><th scope="col">Statistic</th><th scope="col">Value</th></tr></thead>
-                <tbody id="mc-data-body"></tbody>
-              </table>
-            </figure>
+            <!-- ===== Sector heatmap ===== -->
+            <section aria-labelledby="heatmap-heading" class="heatmap-section">
+              <div class="section-header tight">
+                <h2 id="heatmap-heading">Watchlist heatmap</h2>
+                <span class="subtext"
+                  >Colour = latest form change · size = relative team
+                  rating</span
+                >
+              </div>
+              <div
+                class="heatmap"
+                id="heatmap"
+                role="list"
+                aria-label="Scenario comparison by latest synthetic change"
+              ></div>
+            </section>
 
-            <div class="sentiment-wrap" aria-labelledby="sentiment-heading">
-              <h3 id="sentiment-heading">Roster notes</h3>
+            <!-- ===== Team field ===== -->
+            <section class="section" aria-labelledby="stocks-heading">
+              <div class="section-header">
+                <div>
+                  <h2 id="stocks-heading">Team field</h2>
+                  <p class="subtext">
+                    The synthetic ratings used for this match slate. Form status
+                    combines the selected inputs; choose a row for detail.
+                  </p>
+                </div>
+                <span id="aggregate-signal" aria-live="polite"></span>
+              </div>
+              <div class="table-wrap">
+                <table class="stocks" id="stocks-table">
+                  <caption class="sr-only">
+                    Synthetic team ratings with latest form changes, scenario
+                    summaries, note balance, and form status.
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" aria-sort="none">
+                        <button type="button" data-sort="ticker">
+                          Team
+                          <span class="sort-ind" aria-hidden="true">⇅</span>
+                        </button>
+                      </th>
+                      <th scope="col">Org · Game</th>
+                      <th scope="col" class="spark-col">60D</th>
+                      <th scope="col" class="num" aria-sort="none">
+                        <button type="button" data-sort="price">
+                          Elo <span class="sort-ind" aria-hidden="true">⇅</span>
+                        </button>
+                      </th>
+                      <th scope="col" class="num" aria-sort="none">
+                        <button type="button" data-sort="change">
+                          Δ Rating
+                          <span class="sort-ind" aria-hidden="true">⇅</span>
+                        </button>
+                      </th>
+                      <th scope="col" class="num" aria-sort="none">
+                        <button type="button" data-sort="expRet">
+                          Scenario mean
+                          <span class="sort-ind" aria-hidden="true">⇅</span>
+                        </button>
+                      </th>
+                      <th scope="col" class="num">95% CI</th>
+                      <th scope="col" class="num" aria-sort="none">
+                        <button type="button" data-sort="sentiment">
+                          Notes
+                        </button>
+                      </th>
+                      <th scope="col">Form balance</th>
+                      <th scope="col">Agreement</th>
+                      <th scope="col">Form status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stocks-body"></tbody>
+                </table>
+              </div>
+              <p class="table-help subtext" id="table-help">
+                Choose a row, or press Enter from the keyboard, to inspect a
+                team.
+              </p>
+            </section>
 
-              <div class="sentiment-bars" role="img" aria-label="Sentiment distribution" id="sentiment-bars-wrap">
-                <div class="sentiment-bar-pos" id="sent-bar-pos" style="width: 0%"></div>
-                <div class="sentiment-bar-neu" id="sent-bar-neu" style="width: 0%"></div>
-                <div class="sentiment-bar-neg" id="sent-bar-neg" style="width: 0%"></div>
+            <!-- ===== Detail for selected item ===== -->
+            <section
+              class="section"
+              aria-labelledby="detail-heading"
+              id="detail-section"
+            >
+              <div class="section-header">
+                <div>
+                  <h2 id="detail-heading">
+                    Team detail · <span id="detail-ticker">—</span>
+                    <span id="detail-name" class="subtext"></span>
+                  </h2>
+                  <p class="subtext" id="detail-subtitle">
+                    Click a row in the table above to drill into a specific
+                    team.
+                  </p>
+                </div>
+                <span id="detail-signal" aria-live="polite"></span>
               </div>
 
-              <div class="sentiment-stats" aria-label="Sentiment breakdown">
-                <div class="sentiment-stat">
-                  <div class="sentiment-stat-label" id="sent-pos-lbl">Positive</div>
-                  <div class="sentiment-stat-value delta-up" id="sent-pos-val" aria-labelledby="sent-pos-lbl">—</div>
-                </div>
-                <div class="sentiment-stat">
-                  <div class="sentiment-stat-label" id="sent-neu-lbl">Neutral</div>
-                  <div class="sentiment-stat-value" id="sent-neu-val" aria-labelledby="sent-neu-lbl">—</div>
-                </div>
-                <div class="sentiment-stat">
-                  <div class="sentiment-stat-label" id="sent-neg-lbl">Negative</div>
-                  <div class="sentiment-stat-value delta-down" id="sent-neg-val" aria-labelledby="sent-neg-lbl">—</div>
+              <div class="grid-2">
+                <figure class="chart-wrap" aria-labelledby="mc-heading">
+                  <span class="chart-crt-layer" aria-hidden="true"></span>
+                  <h3 id="mc-heading">Seeded scenario paths</h3>
+                  <div
+                    id="mc-chart"
+                    role="img"
+                    aria-label="Loading chart"
+                    tabindex="0"
+                    aria-describedby="mc-crosshair-help"
+                  ></div>
+                  <p id="mc-crosshair-help" class="sr-only">
+                    Use left and right arrow keys to move the crosshair across
+                    match steps; press Home or End to jump to first or last day.
+                  </p>
+                  <div
+                    id="mc-crosshair-sr"
+                    class="sr-only"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  ></div>
+                  <figcaption id="mc-caption">
+                    Run the model to see reproducible scenario paths.
+                  </figcaption>
+                  <table
+                    class="sr-only"
+                    id="mc-data-table"
+                    aria-label="Seeded scenario summary statistics"
+                  >
+                    <caption>
+                      Simulation summary
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Statistic</th>
+                        <th scope="col">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mc-data-body"></tbody>
+                  </table>
+                </figure>
+
+                <div class="sentiment-wrap" aria-labelledby="sentiment-heading">
+                  <h3 id="sentiment-heading">Roster notes</h3>
+
+                  <div
+                    class="sentiment-bars"
+                    role="img"
+                    aria-label="Sentiment distribution"
+                    id="sentiment-bars-wrap"
+                  >
+                    <div
+                      class="sentiment-bar-pos"
+                      id="sent-bar-pos"
+                      style="width: 0%"
+                    ></div>
+                    <div
+                      class="sentiment-bar-neu"
+                      id="sent-bar-neu"
+                      style="width: 0%"
+                    ></div>
+                    <div
+                      class="sentiment-bar-neg"
+                      id="sent-bar-neg"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+
+                  <div class="sentiment-stats" aria-label="Sentiment breakdown">
+                    <div class="sentiment-stat">
+                      <div class="sentiment-stat-label" id="sent-pos-lbl">
+                        Positive
+                      </div>
+                      <div
+                        class="sentiment-stat-value delta-up"
+                        id="sent-pos-val"
+                        aria-labelledby="sent-pos-lbl"
+                      >
+                        —
+                      </div>
+                    </div>
+                    <div class="sentiment-stat">
+                      <div class="sentiment-stat-label" id="sent-neu-lbl">
+                        Neutral
+                      </div>
+                      <div
+                        class="sentiment-stat-value"
+                        id="sent-neu-val"
+                        aria-labelledby="sent-neu-lbl"
+                      >
+                        —
+                      </div>
+                    </div>
+                    <div class="sentiment-stat">
+                      <div class="sentiment-stat-label" id="sent-neg-lbl">
+                        Negative
+                      </div>
+                      <div
+                        class="sentiment-stat-value delta-down"
+                        id="sent-neg-val"
+                        aria-labelledby="sent-neg-lbl"
+                      >
+                        —
+                      </div>
+                    </div>
+                  </div>
+
+                  <h4 id="recent-posts">Recent posts</h4>
+                  <ul
+                    class="posts"
+                    id="post-list"
+                    aria-labelledby="recent-posts"
+                  ></ul>
                 </div>
               </div>
 
-              <h4 id="recent-posts">Recent posts</h4>
-              <ul class="posts" id="post-list" aria-labelledby="recent-posts"></ul>
+              <div>
+                <h3 id="strategy-breakdown-heading">
+                  Rating input breakdown · <span id="detail-ticker-2">—</span>
+                </h3>
+                <div
+                  class="strategy-grid"
+                  id="strategy-grid"
+                  aria-labelledby="strategy-breakdown-heading"
+                ></div>
+              </div>
+            </section>
+
+            <!-- ===== Summary ===== -->
+            <section class="section" aria-labelledby="summary-heading">
+              <div class="section-header">
+                <div>
+                  <h2 id="summary-heading">Team list // summary</h2>
+                  <p class="subtext" id="summary-subtitle">
+                    Narrative overview of every team with combined signal and
+                    sentiment.
+                  </p>
+                </div>
+                <span id="summary-signal"></span>
+              </div>
+              <div class="summary-grid" id="summary-grid"></div>
+            </section>
+          </div>
+
+          <!-- ===== Right rail ===== -->
+          <aside class="side-rail" aria-label="Key session metrics">
+            <div class="rail-box" id="rail-winrate">
+              <p class="rail-box-label">Higher-rating share</p>
+              <p class="rail-box-value up" id="rail-winrate-val">—</p>
+              <p class="rail-box-sub" id="rail-winrate-sub">
+                Final rating above start
+              </p>
             </div>
-          </div>
-
-          <div>
-            <h3 id="strategy-breakdown-heading">Rating input breakdown · <span id="detail-ticker-2">—</span></h3>
-            <div class="strategy-grid" id="strategy-grid" aria-labelledby="strategy-breakdown-heading"></div>
-          </div>
-        </section>
-
-        <!-- ===== Summary ===== -->
-        <section class="section" aria-labelledby="summary-heading">
-          <div class="section-header">
-            <div>
-              <h2 id="summary-heading">Team list // summary</h2>
-              <p class="subtext" id="summary-subtitle">Narrative overview of every team with combined signal and sentiment.</p>
+            <div class="rail-box gauge-box" id="rail-stability">
+              <p class="rail-box-label">Form consistency</p>
+              <div
+                class="gauge-wrap"
+                id="gauge-stability"
+                role="img"
+                aria-label="Form consistency gauge"
+              >
+                <svg class="gauge" viewBox="0 0 120 68" aria-hidden="true">
+                  <path class="gauge-track" d="M10,60 A50,50 0 0,1 110,60" />
+                  <path
+                    class="gauge-fill"
+                    id="gauge-stability-arc"
+                    d="M10,60 A50,50 0 0,1 110,60"
+                  />
+                  <line
+                    class="gauge-needle"
+                    id="gauge-stability-needle"
+                    x1="60"
+                    y1="60"
+                    x2="60"
+                    y2="16"
+                  />
+                  <circle class="gauge-hub" cx="60" cy="60" r="4" />
+                  <line
+                    class="gauge-tick"
+                    x1="60"
+                    y1="14"
+                    x2="60"
+                    y2="10"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
+              <p class="rail-box-value" id="rail-stability-val">—</p>
+              <p class="rail-box-sub" id="rail-stability-sub">
+                Normalised dispersion
+              </p>
             </div>
-            <span id="summary-signal"></span>
-          </div>
-          <div class="summary-grid" id="summary-grid"></div>
-        </section>
-
-      </div>
-
-      <!-- ===== Right rail ===== -->
-      <aside class="side-rail" aria-label="Key session metrics">
-        <div class="rail-box" id="rail-winrate">
-          <p class="rail-box-label">Higher-rating share</p>
-          <p class="rail-box-value up" id="rail-winrate-val">—</p>
-          <p class="rail-box-sub" id="rail-winrate-sub">Final rating above start</p>
+            <div class="rail-box" id="rail-er">
+              <p class="rail-box-label">Mean rating change</p>
+              <p class="rail-box-value" id="rail-er-val">—</p>
+              <p class="rail-box-sub" id="rail-er-sub">Team field · 30d</p>
+            </div>
+            <div class="rail-box down gauge-box" id="rail-lower">
+              <p class="rail-box-label">Lower rating bound</p>
+              <div
+                class="gauge-wrap"
+                id="gauge-lower"
+                role="img"
+                aria-label="Lower-tail scenario gauge"
+              >
+                <svg class="gauge" viewBox="0 0 120 68" aria-hidden="true">
+                  <path class="gauge-track" d="M10,60 A50,50 0 0,1 110,60" />
+                  <path
+                    class="gauge-fill danger"
+                    id="gauge-lower-arc"
+                    d="M10,60 A50,50 0 0,1 110,60"
+                  />
+                  <line
+                    class="gauge-needle danger"
+                    id="gauge-lower-needle"
+                    x1="60"
+                    y1="60"
+                    x2="60"
+                    y2="16"
+                  />
+                  <circle class="gauge-hub" cx="60" cy="60" r="4" />
+                  <line
+                    class="gauge-tick"
+                    x1="60"
+                    y1="14"
+                    x2="60"
+                    y2="10"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
+              <p class="rail-box-value down" id="rail-lower-val">—</p>
+              <p class="rail-box-sub" id="rail-lower-sub">
+                5th-percentile outcome
+              </p>
+            </div>
+            <div class="rail-box" id="rail-sent">
+              <p class="rail-box-label">Note balance</p>
+              <p class="rail-box-value" id="rail-sent-val">—</p>
+              <p class="rail-box-sub">Note balance</p>
+            </div>
+            <div class="rail-box" id="rail-buys">
+              <p class="rail-box-label">Form split</p>
+              <p class="rail-box-value" id="rail-buys-val">—</p>
+              <p class="rail-box-sub" id="rail-buys-sub">Team list</p>
+            </div>
+          </aside>
         </div>
-        <div class="rail-box gauge-box" id="rail-stability">
-          <p class="rail-box-label">Form consistency</p>
-          <div class="gauge-wrap" id="gauge-stability" role="img" aria-label="Form consistency gauge">
-            <svg class="gauge" viewBox="0 0 120 68" aria-hidden="true">
-              <path class="gauge-track" d="M10,60 A50,50 0 0,1 110,60"/>
-              <path class="gauge-fill" id="gauge-stability-arc" d="M10,60 A50,50 0 0,1 110,60"/>
-              <line class="gauge-needle" id="gauge-stability-needle" x1="60" y1="60" x2="60" y2="16"/>
-              <circle class="gauge-hub" cx="60" cy="60" r="4"/>
-              <line class="gauge-tick" x1="60" y1="14" x2="60" y2="10" stroke-width="2"/>
-            </svg>
-          </div>
-          <p class="rail-box-value" id="rail-stability-val">—</p>
-          <p class="rail-box-sub" id="rail-stability-sub">Normalised dispersion</p>
-        </div>
-        <div class="rail-box" id="rail-er">
-          <p class="rail-box-label">Mean rating change</p>
-          <p class="rail-box-value" id="rail-er-val">—</p>
-          <p class="rail-box-sub" id="rail-er-sub">Team field · 30d</p>
-        </div>
-        <div class="rail-box down gauge-box" id="rail-lower">
-          <p class="rail-box-label">Lower rating bound</p>
-          <div class="gauge-wrap" id="gauge-lower" role="img" aria-label="Lower-tail scenario gauge">
-            <svg class="gauge" viewBox="0 0 120 68" aria-hidden="true">
-              <path class="gauge-track" d="M10,60 A50,50 0 0,1 110,60"/>
-              <path class="gauge-fill danger" id="gauge-lower-arc" d="M10,60 A50,50 0 0,1 110,60"/>
-              <line class="gauge-needle danger" id="gauge-lower-needle" x1="60" y1="60" x2="60" y2="16"/>
-              <circle class="gauge-hub" cx="60" cy="60" r="4"/>
-              <line class="gauge-tick" x1="60" y1="14" x2="60" y2="10" stroke-width="2"/>
-            </svg>
-          </div>
-          <p class="rail-box-value down" id="rail-lower-val">—</p>
-          <p class="rail-box-sub" id="rail-lower-sub">5th-percentile outcome</p>
-        </div>
-        <div class="rail-box" id="rail-sent">
-          <p class="rail-box-label">Note balance</p>
-          <p class="rail-box-value" id="rail-sent-val">—</p>
-          <p class="rail-box-sub">Note balance</p>
-        </div>
-        <div class="rail-box" id="rail-buys">
-          <p class="rail-box-label">Form split</p>
-          <p class="rail-box-value" id="rail-buys-val">—</p>
-          <p class="rail-box-sub" id="rail-buys-sub">Team list</p>
-        </div>
-      </aside>
-
-    </div>
-        <section class="section extra-panel" aria-labelledby="h2h-heading" id="extra-section">
+        <section
+          class="section extra-panel"
+          aria-labelledby="h2h-heading"
+          id="extra-section"
+        >
           <div class="section-header">
             <div>
               <h2 id="h2h-heading">Head-to-head matrix // tournament EV</h2>
-              <p class="subtext">Win-probability matrix derived from current Elo ratings. Hover or focus a cell for the matchup.</p>
+              <p class="subtext">
+                Win-probability matrix derived from current Elo ratings. Hover
+                or focus a cell for the matchup.
+              </p>
             </div>
             <span id="extra-meta" class="subtext"></span>
           </div>
-          <div id="extra-content" role="img" aria-label="Head-to-head win probability matrix"></div>
-          <table class="sr-only" id="extra-data-table"><caption>Head to head Elo-derived win probability</caption><thead><tr><th scope="col">Matchup</th><th scope="col">Win probability</th></tr></thead><tbody id="extra-data-body"></tbody></table>
+          <div
+            id="extra-content"
+            role="img"
+            aria-label="Head-to-head win probability matrix"
+          ></div>
+          <table class="sr-only" id="extra-data-table">
+            <caption>
+              Head to head Elo-derived win probability
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Matchup</th>
+                <th scope="col">Win probability</th>
+              </tr>
+            </thead>
+            <tbody id="extra-data-body"></tbody>
+          </table>
         </section>
-        <section class="section extra-panel" aria-labelledby="formvar-heading" id="extra2-section">
+        <section
+          class="section extra-panel"
+          aria-labelledby="formvar-heading"
+          id="extra2-section"
+        >
           <div class="section-header">
             <div>
-              <h2 id="formvar-heading">Form × variance map // consistency frontier</h2>
-              <p class="subtext" id="extra2-subtitle">Each team's Elo trend (x-axis) plotted against rolling rating-deviation (y-axis). Top-right = high-form low-variance — favorites. Bottom-left = improving long shots.</p>
+              <h2 id="formvar-heading">
+                Form × variance map // consistency frontier
+              </h2>
+              <p class="subtext" id="extra2-subtitle">
+                Each team's Elo trend (x-axis) plotted against rolling
+                rating-deviation (y-axis). Top-right = high-form low-variance —
+                favorites. Bottom-left = improving long shots.
+              </p>
             </div>
             <span id="extra2-meta" class="subtext"></span>
           </div>
-          <div id="extra2-content" role="img" aria-label="Form versus variance scatter plot of all teams"></div>
-          <table class="sr-only" id="extra2-data-table"><caption>Team form (Elo trend) and variance (rating deviation)</caption><thead><tr><th scope="col">Team</th><th scope="col">Form Δ Elo</th><th scope="col">Rating deviation</th></tr></thead><tbody id="extra2-data-body"></tbody></table>
+          <div
+            id="extra2-content"
+            role="img"
+            aria-label="Form versus variance scatter plot of all teams"
+          ></div>
+          <table class="sr-only" id="extra2-data-table">
+            <caption>
+              Team form (Elo trend) and variance (rating deviation)
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Team</th>
+                <th scope="col">Form Δ Elo</th>
+                <th scope="col">Rating deviation</th>
+              </tr>
+            </thead>
+            <tbody id="extra2-data-body"></tbody>
+          </table>
         </section>
-        <section class="section extra-panel" aria-labelledby="tornado-heading" id="extra3-section">
+        <section
+          class="section extra-panel"
+          aria-labelledby="tornado-heading"
+          id="extra3-section"
+        >
           <div class="section-header">
             <div>
-              <h2 id="tornado-heading">Sensitivity analysis // tornado chart</h2>
-              <p class="subtext" id="extra3-subtitle">Single-parameter sensitivity at the configured baseline. Each bar is the % change in the dashboard's primary forward statistic when the parameter is perturbed by the listed amount, holding all others constant. Bars sorted by absolute magnitude, largest impact first.</p>
+              <h2 id="tornado-heading">
+                Sensitivity analysis // tornado chart
+              </h2>
+              <p class="subtext" id="extra3-subtitle">
+                Single-parameter sensitivity at the configured baseline. Each
+                bar is the % change in the dashboard's primary forward statistic
+                when the parameter is perturbed by the listed amount, holding
+                all others constant. Bars sorted by absolute magnitude, largest
+                impact first.
+              </p>
             </div>
             <span id="extra3-meta" class="subtext"></span>
           </div>
-          <div id="extra3-content" role="img" aria-labelledby="tornado-heading" aria-describedby="extra3-subtitle"></div>
-          <table class="sr-only" id="extra3-data-table"><caption>Parameter sensitivities, sorted by absolute magnitude</caption><thead><tr><th scope="col">Parameter</th><th scope="col">Perturbation</th><th scope="col">Downside %</th><th scope="col">Upside %</th><th scope="col">Range</th></tr></thead><tbody id="extra3-data-body"></tbody></table>
+          <div
+            id="extra3-content"
+            role="img"
+            aria-labelledby="tornado-heading"
+            aria-describedby="extra3-subtitle"
+          ></div>
+          <table class="sr-only" id="extra3-data-table">
+            <caption>
+              Parameter sensitivities, sorted by absolute magnitude
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Parameter</th>
+                <th scope="col">Perturbation</th>
+                <th scope="col">Downside %</th>
+                <th scope="col">Upside %</th>
+                <th scope="col">Range</th>
+              </tr>
+            </thead>
+            <tbody id="extra3-data-body"></tbody>
+          </table>
         </section>
-        <section class="section extra-panel" aria-labelledby="grid-heading" id="extra4-section">
+        <section
+          class="section extra-panel"
+          aria-labelledby="grid-heading"
+          id="extra4-section"
+        >
           <div class="section-header">
             <div>
               <h2 id="grid-heading">Parameter grid // r_A−r_B × RD_*</h2>
-              <p class="subtext" id="extra4-subtitle">2-D parameter-space heatmap: r_A−r_B on the x-axis, RD_* on the y-axis, color + glyph encoding the resulting P(A wins Bo5) %. Cells use the same severity glyph vocabulary as elsewhere in the dashboard for color-independent encoding.</p>
+              <p class="subtext" id="extra4-subtitle">
+                2-D parameter-space heatmap: r_A−r_B on the x-axis, RD_* on the
+                y-axis, color + glyph encoding the resulting P(A wins Bo5) %.
+                Cells use the same severity glyph vocabulary as elsewhere in the
+                dashboard for color-independent encoding.
+              </p>
             </div>
             <span id="extra4-meta" class="subtext"></span>
           </div>
-          <div id="extra4-content" role="img" aria-labelledby="grid-heading" aria-describedby="extra4-subtitle"></div>
-          <table class="sr-only" id="extra4-data-table"><caption>Parameter-grid heatmap values</caption><thead><tr><th scope="col">r_A−r_B</th><th scope="col">RD_*</th><th scope="col">Outcome (P(A wins Bo5) %)</th></tr></thead><tbody id="extra4-data-body"></tbody></table>
+          <div
+            id="extra4-content"
+            role="img"
+            aria-labelledby="grid-heading"
+            aria-describedby="extra4-subtitle"
+          ></div>
+          <table class="sr-only" id="extra4-data-table">
+            <caption>
+              Parameter-grid heatmap values
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">r_A−r_B</th>
+                <th scope="col">RD_*</th>
+                <th scope="col">Outcome (P(A wins Bo5) %)</th>
+              </tr>
+            </thead>
+            <tbody id="extra4-data-body"></tbody>
+          </table>
         </section>
-        <section class="section methodology" aria-labelledby="methodology-heading" id="methodology-section">
-          <div class="section-header"><div><h2 id="methodology-heading">How the rating study works</h2><p class="subtext">Scenario inputs, repeatability, and the line between analysis and betting.</p></div><span class="subtext">Deterministic browser model</span></div>
+        <section
+          class="section methodology"
+          aria-labelledby="methodology-heading"
+          id="methodology-section"
+        >
+          <div class="section-header">
+            <div>
+              <h2 id="methodology-heading">How the rating study works</h2>
+              <p class="subtext">
+                Scenario inputs, repeatability, and the line between analysis
+                and betting.
+              </p>
+            </div>
+            <span class="subtext">Deterministic browser model</span>
+          </div>
           <article class="methodology-article">
             <h3>Calculation</h3>
-            <p>Each team has a synthetic rating, drift, and dispersion. The browser generates seeded lognormal paths and comparison bands. Head-to-head and bracket panels are deterministic scenario views, not live odds.</p>
+            <p>
+              Each team has a synthetic rating, drift, and dispersion. The
+              browser generates seeded lognormal paths and comparison bands.
+              Head-to-head and bracket panels are deterministic scenario views,
+              not live odds.
+            </p>
             <h3>Reproducibility</h3>
-            <p>The team snapshot is committed with the source. The same team, horizon, path count, and seed produce the same result.</p>
+            <p>
+              The team snapshot is committed with the source. The same team,
+              horizon, path count, and seed produce the same result.
+            </p>
             <h3>Limits</h3>
-            <ul><li>No fixture, roster, result, bookmaker, or live rating feed is connected.</li><li>Recognisable team names are labels only; all numerical values are synthetic.</li><li>No predictive edge, betting backtest, or wagering recommendation is claimed.</li><li>A real evaluation would require timestamped pre-match ratings and settled outcomes.</li></ul>
+            <ul>
+              <li>
+                No fixture, roster, result, bookmaker, or live rating feed is
+                connected.
+              </li>
+              <li>
+                Recognisable team names are labels only; all numerical values
+                are synthetic.
+              </li>
+              <li>
+                No predictive edge, betting backtest, or wagering recommendation
+                is claimed.
+              </li>
+              <li>
+                A real evaluation would require timestamped pre-match ratings
+                and settled outcomes.
+              </li>
+            </ul>
             <h3>Source</h3>
-            <p>Review the <a href="https://github.com/pablowilliams/series-forecast/blob/main/app.js" rel="noopener">browser implementation</a> and <a href="https://github.com/pablowilliams/series-forecast/blob/main/data/quotes.json" rel="noopener">versioned rating snapshot</a>.</p>
+            <p>
+              Review the
+              <a
+                href="https://github.com/pablowilliams/series-forecast/blob/main/app.js"
+                rel="noopener"
+                >browser implementation</a
+              >
+              and
+              <a
+                href="https://github.com/pablowilliams/series-forecast/blob/main/data/quotes.json"
+                rel="noopener"
+                >versioned rating snapshot</a
+              >.
+            </p>
           </article>
         </section>
+      </main>
 
-  </main>
+      <!-- Particle effects layer -->
+      <div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
 
-  <!-- Particle effects layer -->
-  <div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
+      <!-- SVG gradient defs for sparklines -->
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        width="0"
+        height="0"
+        style="position: absolute"
+      >
+        <defs>
+          <linearGradient id="spark-grad-up" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00ff88" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="#00ff88" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="spark-grad-down" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ff3366" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="#ff3366" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
 
-  <!-- SVG gradient defs for sparklines -->
-  <svg aria-hidden="true" focusable="false" width="0" height="0" style="position:absolute">
-    <defs>
-      <linearGradient id="spark-grad-up" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"  stop-color="#00ff88" stop-opacity="0.55"/>
-        <stop offset="100%" stop-color="#00ff88" stop-opacity="0"/>
-      </linearGradient>
-      <linearGradient id="spark-grad-down" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"  stop-color="#ff3366" stop-opacity="0.55"/>
-        <stop offset="100%" stop-color="#ff3366" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-  </svg>
+      <footer class="app-footer" role="contentinfo">
+        <span
+          >Fixed rating scenarios · methodology disclosed · no betting
+          advice</span
+        >
+        <span class="brand-mark">SF<span class="dot">.</span></span>
+      </footer>
+    </div>
 
-  <footer class="app-footer" role="contentinfo">
-    <span>Fixed rating scenarios · methodology disclosed · no betting advice</span>
-    <span class="brand-mark">SF<span class="dot">.</span></span>
-  </footer>
-
-</div>
-
-<script src="app.js?v=4"></script>
-</body>
+    <script src="app.js?v=4"></script>
+  </body>
 </html>

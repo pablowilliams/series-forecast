@@ -1,14 +1,178 @@
-/* Series Forecast: broadcast-style match analysis. */
-:root { --bg:#0d0e12; --bg-elev-1:#15171d; --bg-elev-2:#1b1e26; --bg-elev-3:#242833; --border:#2a2e3a; --border-strong:#42495b; --text:#f3f1ea; --text-muted:#aaa7b2; --text-dim:#777582; --accent:#f4d35e; --accent-dim:#b99b34; --accent-bg:rgba(244,211,94,.1); --danger:#ff5c7a; --focus:#f4d35e; --font-sans:"Space Grotesk",system-ui,sans-serif; --r:12px; }
-html,body { overflow-x:hidden; }
-.term-strip { display:none!important; }
-body::before { background:radial-gradient(circle at 80% 0,rgba(244,211,94,.09),transparent 32%); }
-.app { max-width:1360px; padding:18px 26px 52px; }
-.ticker-tape-wrap { margin-inline:-26px; border:0; border-bottom:1px solid var(--border-strong); }
-.app-header { padding-top:20px; border-bottom:0; }
-.app-header h1 { font:800 21px/1 var(--font-sans); letter-spacing:-.02em; text-transform:uppercase; }
-.hero { background:linear-gradient(125deg,#24202d,#12141a 70%); border:1px solid #3d3946; overflow:hidden; }
-.hero-h { font:800 clamp(42px,7vw,84px)/.9 var(--font-sans); letter-spacing:-.06em; text-transform:uppercase; }
-.section,.controls-block { border-radius:var(--r); }
-.section h2,.section h3,.section h4 { font-family:var(--font-sans); letter-spacing:-.02em; text-transform:none; }
-.btn { background:var(--accent); border-color:var(--accent); color:#17130a; }
+/* Series Forecast — live broadcast graphics and match-night energy. */
+:root {
+  --bg: #090a0f;
+  --bg-elev-1: #13151d;
+  --bg-elev-2: #1b1d27;
+  --bg-elev-3: #252835;
+  --border: #292c38;
+  --border-strong: #444958;
+  --text: #fffdf4;
+  --text-muted: #aaa9b2;
+  --text-dim: #777783;
+  --accent: #f7df4b;
+  --accent-dim: #b59d16;
+  --accent-bg: rgba(247, 223, 75, 0.12);
+  --danger: #ff4d7a;
+  --focus: #f7df4b;
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "Space Mono", monospace;
+  --r: 18px;
+}
+html,
+body {
+  background: var(--bg);
+  overflow-x: hidden;
+}
+body::before {
+  background:
+    radial-gradient(
+      circle at 76% 12%,
+      rgba(132, 78, 255, 0.2),
+      transparent 32%
+    ),
+    radial-gradient(circle at 0 70%, rgba(247, 223, 75, 0.07), transparent 30%);
+}
+.app {
+  max-width: 1480px;
+  padding: 0 30px 64px;
+}
+.ticker-tape-wrap {
+  margin: 0 -30px 0;
+  border: 0;
+  border-bottom: 1px solid #30323e;
+  background: #050609;
+}
+.term-strip {
+  display: none !important;
+}
+.app-header {
+  padding: 28px 0 22px;
+  border-bottom: 0;
+}
+.app-header h1 {
+  font: 900 23px/1 var(--font-sans);
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+.app-header h1::after {
+  content: "LIVE";
+  margin-left: 12px;
+  padding: 4px 7px;
+  background: var(--danger);
+  color: white;
+  font: 800 9px var(--font-sans);
+  letter-spacing: 0.12em;
+  border-radius: 99px;
+  vertical-align: middle;
+}
+.hero {
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 430px;
+  border: 1px solid #343746;
+  border-radius: 28px;
+  background: linear-gradient(118deg, #211940 0%, #11131b 58%, #191615);
+  box-shadow: 0 35px 80px rgba(0, 0, 0, 0.35);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -30% 47% -30% -14%;
+  z-index: -1;
+  transform: skewX(-12deg);
+  background: linear-gradient(145deg, #754cff, #3d25a5);
+  opacity: 0.72;
+}
+.hero::after {
+  content: "MATCH NIGHT";
+  position: absolute;
+  right: -15px;
+  bottom: -28px;
+  font: 900 clamp(72px, 12vw, 170px)/1 var(--font-sans);
+  color: rgba(255, 255, 255, 0.035);
+  letter-spacing: -0.07em;
+  white-space: nowrap;
+}
+.hero-grid {
+  min-height: 390px;
+  align-items: center;
+}
+.hero-eyebrow {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+.hero-h {
+  max-width: 900px;
+  font: 900 clamp(54px, 8vw, 112px)/0.82 var(--font-sans);
+  letter-spacing: -0.075em;
+  text-transform: uppercase;
+}
+.hero-sub {
+  font: 650 18px/1.35 var(--font-sans);
+  max-width: 560px;
+}
+.hero-art {
+  transform: rotate(2deg);
+  background: #0e1017;
+  border: 1px solid #4d5160;
+  border-radius: 24px;
+  box-shadow: 16px 18px 0 rgba(247, 223, 75, 0.9);
+}
+.controls-block,
+.section {
+  border-radius: 18px;
+  border-color: #30333f;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+}
+.controls-block {
+  background: linear-gradient(180deg, #191c25, #12141b);
+}
+.section h2,
+.section h3,
+.section h4 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.025em;
+  text-transform: none;
+}
+.kpi-card {
+  background: linear-gradient(145deg, #1c1f29, #11131a);
+  border-radius: 14px;
+}
+.heatmap-item {
+  border-radius: 12px;
+}
+.stocks thead {
+  background: #0b0c11;
+}
+.stocks tbody tr:hover {
+  background: rgba(247, 223, 75, 0.055);
+}
+.btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #171509;
+  border-radius: 999px;
+  font-weight: 900;
+  padding-inline: 22px;
+}
+.strategy-chip {
+  border-radius: 999px;
+}
+@media (max-width: 760px) {
+  .app {
+    padding-inline: 16px;
+  }
+  .ticker-tape-wrap {
+    margin-inline: -16px;
+  }
+  .hero {
+    min-height: auto;
+  }
+  .hero::before {
+    inset: -20% 20% 48% -20%;
+  }
+  .hero-art {
+    box-shadow: 8px 10px 0 var(--accent);
+  }
+}
